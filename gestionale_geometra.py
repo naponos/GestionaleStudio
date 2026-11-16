@@ -239,7 +239,7 @@ class GestionaleGeometra:
 
         tk.Label(grid_fattura, text="Annotazioni Fiscali:", bg=self.COLORE_SFONDO, fg=self.COLORE_TESTO, font=(self.FONT_BASE, 10)).grid(row=5, column=0, sticky="w", pady=5)
         self.entry_fatt_note = tk.Entry(grid_fattura, width=70, bg=self.COLORE_CAMPI, fg=self.COLORE_TESTO, relief="flat", font=(self.FONT_BASE, 10))
-        self.entry_fatt_note.insert(0, "Operazione senza IVA ai sensi dell'art. 10, n. 20) D.P.R. 633/72")
+        self.entry_fatt_note.insert(0, "Operazione senza IVA ai sensi dell'art. 10, n. 20 - D.P.R. 633/72")
         self.entry_fatt_note.grid(row=5, column=1, padx=5, pady=5, sticky="w")
 
         frame_bottoni_fattura = tk.Frame(self.frame_fattura, bg=self.COLORE_SFONDO)
@@ -669,7 +669,7 @@ class GestionaleGeometra:
         
         if tipo_scelto == "Catasto":
             self.lbl_sottotipo.config(text="Dettaglio Catasto:")
-            self.combo_sottotipo.config(values=["Inserimento in mappa e docfa", "Ricorsi", "Allineamento dati"])
+            self.combo_sottotipo.config(values=["Inserimento in mappa e docfa", "Ricorsi", "Allineamento dati", "Frazionamento", "DOCFA"])
             self.lbl_sottotipo.grid(row=2, column=2, sticky="w", pady=5, padx=(25, 0))
             self.combo_sottotipo.grid(row=2, column=3, padx=5, pady=5)
             
