@@ -28,7 +28,7 @@ import tkinter as tk
 import webbrowser
 from datetime import date, datetime
 from pathlib import Path
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, font as tkfont
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "studio_gui.db")
 CODIFICA = "utf-8"  # sempre UTF-8, su macOS come su Windows
@@ -60,7 +60,157 @@ def url_file(percorso):
     return Path(percorso).resolve().as_uri()
 
 
+# ---------------------------------------------------------------------------
+# Aspetto grafico: tema scuro esplicito, uguale su macOS e Windows
+# ---------------------------------------------------------------------------
+
+SFONDO = "#1e1f22"
+PANEL = "#26282c"
+RIGA = "#2b2d31"
+CAMPO = "#31343a"
+BOTTONE = "#3a3d44"
+BOTTONE_HOVER = "#4a4e57"
+BOTTONE_PREMUTO = "#2f3238"
+BORDO = "#4a4f58"
+TESTO = "#e8e8e8"
+TESTO_TENUE = "#a3a9b3"
+ACCENTO = "#2f6feb"
+ACCENTO_TESTO = "#ffffff"
+INTESTAZIONE = "#33373d"
+TAB = "#2a2d33"
+TAB_ATTIVO = "#3a3e46"
+SCADUTA_BG = "#5a2a2a"
+SCADUTA_FG = "#ffdede"
+
+
+def usa_schermo_hd():
+    """Su Windows evita la finestra sfocata quando il display ha il 150%/200% di zoom."""
+    if not sys.platform.startswith("win"):
+        return
+    try:
+        import ctypes
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except (AttributeError, OSError):
+            ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
+
+def applica_tema(radice):
+    """Tema scuro disegnato da Tk (ttk 'clam'), così l'aspetto non dipende dal sistema."""
+    stile = ttk.Style(radice)
+    try:
+        stile.theme_use("clam")  # tema incluso in Tk: macOS, Windows e Linux
+    except tk.TclError:
+        pass
+
+    famiglia = tkfont.nametofont("TkDefaultFont").actual("family")
+    for nome in ("TkDefaultFont", "TkTextFont", "TkMenuFont", "TkHeadingFont",
+                 "TkTooltipFont"):
+        try:
+            tkfont.nametofont(nome).configure(family=famiglia, size=11)
+        except tk.TclError:
+            pass
+
+    def cfg(nome, **opzioni):
+        try:
+            stile.configure(nome, **opzioni)
+        except tk.TclError:
+            pass
+
+    def mappa(nome, **opzioni):
+        try:
+            stile.map(nome, **opzioni)
+        except tk.TclError:
+            pass
+
+    radice.configure(background=SFONDO)
+
+    cfg("TFrame", background=SFONDO)
+    cfg("TLabel", background=SFONDO, foreground=TESTO)
+    cfg("TSeparator", background=BORDO)
+    cfg("TLabelframe", background=SFONDO, bordercolor=BORDO, foreground=TESTO)
+    cfg("TLabelframe.Label", background=SFONDO, foreground=TESTO)
+
+    cfg("TButton", background=BOTTONE, foreground=TESTO, bordercolor=BORDO,
+        lightcolor=BOTTONE, darkcolor=BOTTONE, focuscolor=ACCENTO, padding=(9, 4),
+        relief="flat")
+    mappa("TButton",
+          background=[("disabled", PANEL), ("pressed", BOTTONE_PREMUTO),
+                      ("active", BOTTONE_HOVER)],
+          foreground=[("disabled", TESTO_TENUE)])
+
+    cfg("TEntry", fieldbackground=CAMPO, foreground=TESTO, insertcolor=TESTO,
+        bordercolor=BORDO, lightcolor=BORDO, darkcolor=BORDO, padding=(4, 3))
+    mappa("TEntry", fieldbackground=[("disabled", PANEL)],
+          foreground=[("disabled", TESTO_TENUE)])
+
+    cfg("TCombobox", fieldbackground=CAMPO, background=BOTTONE, foreground=TESTO,
+        arrowcolor=TESTO, bordercolor=BORDO, lightcolor=BORDO, darkcolor=BORDO,
+        padding=(4, 3))
+    mappa("TCombobox",
+          fieldbackground=[("readonly", CAMPO), ("disabled", PANEL)],
+          foreground=[("readonly", TESTO), ("disabled", TESTO_TENUE)],
+          background=[("active", BOTTONE_HOVER)],
+          selectbackground=[("readonly", CAMPO)],
+          selectforeground=[("readonly", TESTO)])
+
+    cfg("TNotebook", background=SFONDO, bordercolor=BORDO, tabmargins=(2, 4, 2, 0))
+    cfg("TNotebook.Tab", background=TAB, foreground=TESTO_TENUE, padding=(14, 6),
+        bordercolor=BORDO, lightcolor=TAB, darkcolor=TAB)
+    mappa("TNotebook.Tab",
+          background=[("selected", TAB_ATTIVO), ("active", BOTTONE_HOVER)],
+          foreground=[("selected", TESTO), ("active", TESTO)],
+          lightcolor=[("selected", TAB_ATTIVO)],
+          darkcolor=[("selected", TAB_ATTIVO)])
+
+    cfg("Treeview", background=RIGA, fieldbackground=RIGA, foreground=TESTO,
+        bordercolor=BORDO, lightcolor=BORDO, darkcolor=BORDO, rowheight=24)
+    mappa("Treeview", background=[("selected", ACCENTO)],
+          foreground=[("selected", ACCENTO_TESTO)])
+    cfg("Treeview.Heading", background=INTESTAZIONE, foreground=TESTO, relief="flat",
+        bordercolor=BORDO, lightcolor=INTESTAZIONE, darkcolor=INTESTAZIONE,
+        font=(famiglia, 11, "bold"))
+    mappa("Treeview.Heading", background=[("active", BOTTONE_HOVER)],
+          foreground=[("active", TESTO)])
+
+    cfg("TCheckbutton", background=SFONDO, foreground=TESTO, focuscolor=ACCENTO,
+        padding=(2, 2), indicatorbackground=CAMPO, indicatorforeground=TESTO,
+        upperbordercolor=BORDO, lowerbordercolor=BORDO)
+    mappa("TCheckbutton", background=[("active", SFONDO)],
+          foreground=[("disabled", TESTO_TENUE)],
+          indicatorbackground=[("selected", ACCENTO), ("disabled", PANEL)],
+          indicatorforeground=[("selected", ACCENTO_TESTO)])
+
+    # interruttore "solo aperte": pulsante a due stati, senza la X del checkbutton
+    cfg("Toolbutton", background=BOTTONE, foreground=TESTO_TENUE, bordercolor=BORDO,
+        lightcolor=BOTTONE, darkcolor=BOTTONE, focuscolor=ACCENTO, padding=(9, 4),
+        relief="flat")
+    mappa("Toolbutton",
+          background=[("selected", ACCENTO), ("active", BOTTONE_HOVER)],
+          foreground=[("selected", ACCENTO_TESTO), ("active", TESTO)])
+
+    cfg("TScrollbar", background=BOTTONE, troughcolor=PANEL, bordercolor=PANEL,
+        arrowcolor=TESTO, lightcolor=BOTTONE, darkcolor=BOTTONE)
+    mappa("TScrollbar", background=[("active", BOTTONE_HOVER)])
+
+    # tendina dei menu a scelta (è una listbox Tk, non un widget ttk)
+    for chiave, valore in (
+        ("background", CAMPO), ("foreground", TESTO),
+        ("selectBackground", ACCENTO), ("selectForeground", ACCENTO_TESTO),
+        ("font", (famiglia, 11)),
+    ):
+        try:
+            radice.option_add(f"*TCombobox*Listbox.{chiave}", valore)
+        except tk.TclError:
+            pass
+
+    return stile
+
+
 imposta_utf8()
+usa_schermo_hd()
 
 TIPI_CAMPO = ["testo", "numero", "data", "lista", "testo lungo"]
 SEZIONI = ["clienti", "pratiche", "scadenze"]
@@ -99,37 +249,38 @@ DATI_STUDIO = [("nome", "Studio"), ("indirizzo", "Indirizzo"),
 CAMPI_FISSI = {
     "clienti": [
         {"chiave": "cognome", "etichetta": "Cognome / Ragione sociale *", "tipo": "testo",
-         "obbligatorio": True, "tabella": True},
+         "obbligatorio": True, "tabella": True, "larghezza_tabella": 200},
         {"chiave": "nome", "etichetta": "Nome", "tipo": "testo", "tabella": True},
         {"chiave": "nato_il", "etichetta": "Nato/a il", "tipo": "data", "tabella": True},
         {"chiave": "nato_a", "etichetta": "Nato/a a", "tipo": "testo"},
         {"chiave": "provincia", "etichetta": "Prov. nascita", "tipo": "testo", "larghezza": 10},
         {"chiave": "codice_fiscale", "etichetta": "Codice fiscale / P.IVA", "tipo": "testo",
-         "tabella": True},
-        {"chiave": "indirizzo_residenza", "etichetta": "Indirizzo residenza", "tipo": "testo",
-         "tabella": True},
+         "tabella": True, "colonna": "Cod. fiscale / P.IVA"},
+        {"chiave": "indirizzo_residenza", "etichetta": "Indirizzo residenza", "tipo": "testo"},
         {"chiave": "indirizzo_immobile", "etichetta": "Indirizzo immobile", "tipo": "testo",
          "tabella": True},
         {"chiave": "citta_immobile", "etichetta": "Città immobile", "tipo": "testo",
          "tabella": True},
         {"chiave": "telefono", "etichetta": "Telefono", "tipo": "testo", "tabella": True,
          "larghezza_tabella": 110},
-        {"chiave": "email", "etichetta": "Email", "tipo": "testo", "tabella": True},
+        {"chiave": "email", "etichetta": "Email", "tipo": "testo", "tabella": True,
+         "larghezza_tabella": 160},
         {"chiave": "note", "etichetta": "Note", "tipo": "testo lungo"},
     ],
     "pratiche": [
         {"chiave": "numero_ordine", "etichetta": "Numero d'ordine / pratica", "tipo": "testo",
-         "tabella": True, "larghezza_tabella": 110, "automatico": True},
+         "tabella": True, "colonna": "N° ordine", "larghezza_tabella": 110,
+         "automatico": True},
         {"chiave": "cliente", "etichetta": "Cliente *", "tipo": "cliente", "obbligatorio": True,
          "tabella": True},
         {"chiave": "in_qualita_di", "etichetta": "In qualità di", "tipo": "lista",
-         "opzioni": RUOLI_CLIENTE, "tabella": True, "larghezza_tabella": 180},
+         "opzioni": RUOLI_CLIENTE, "tabella": True, "larghezza_tabella": 150},
         {"chiave": "incarico", "etichetta": "Incarico", "tipo": "testo"},
         {"chiave": "data_incarico", "etichetta": "Data incarico", "tipo": "data", "tabella": True},
         {"chiave": "tipologia_immobile", "etichetta": "Tipologia immobile", "tipo": "lista",
-         "opzioni": TIPI_IMMOBILE, "tabella": True},
+         "opzioni": TIPI_IMMOBILE, "tabella": True, "colonna": "Tipo immobile"},
         {"chiave": "categoria", "etichetta": "Tipologia pratica", "tipo": "lista",
-         "opzioni": CATEGORIE, "tabella": True},
+         "opzioni": CATEGORIE, "tabella": True, "colonna": "Tipo pratica"},
         {"chiave": "dettaglio", "etichetta": "Dettaglio", "tipo": "dipende",
          "dipende_da": "categoria", "tabella": True},
         {"chiave": "titolo", "etichetta": "Titolo abilitativo", "tipo": "lista",
@@ -138,7 +289,7 @@ CAMPI_FISSI = {
         {"chiave": "stato", "etichetta": "Stato", "tipo": "lista", "opzioni": STATI_PRATICA,
          "tabella": True},
         {"chiave": "compenso", "etichetta": "Compenso pattuito (€)", "tipo": "numero",
-         "tabella": True},
+         "tabella": True, "colonna": "Compenso (€)"},
     ],
     "scadenze": [
         {"chiave": "descrizione", "etichetta": "Descrizione *", "tipo": "testo",
@@ -146,7 +297,7 @@ CAMPI_FISSI = {
         {"chiave": "data_scadenza", "etichetta": "Data scadenza *", "tipo": "data",
          "obbligatorio": True, "tabella": True},
         {"chiave": "pratica", "etichetta": "Pratica collegata", "tipo": "pratica",
-         "tabella": True},
+         "tabella": True, "colonna": "Pratica"},
         {"chiave": "completata", "etichetta": "Completata", "tipo": "si_no", "tabella": True},
     ],
 }
@@ -483,7 +634,11 @@ def _metti_oggi(entry):
 class TestoLungo(ttk.Frame):
     def __init__(self, padre, default=""):
         super().__init__(padre)
-        self.text = tk.Text(self, width=18, height=3, wrap="word")
+        self.text = tk.Text(self, width=18, height=3, wrap="word",
+                            background=CAMPO, foreground=TESTO, insertbackground=TESTO,
+                            selectbackground=ACCENTO, selectforeground=ACCENTO_TESTO,
+                            relief="flat", highlightthickness=1,
+                            highlightbackground=BORDO, highlightcolor=ACCENTO)
         barra = ttk.Scrollbar(self, command=self.text.yview)
         self.text.configure(yscrollcommand=barra.set)
         self.text.pack(side="left", fill="both", expand=True)
@@ -525,7 +680,7 @@ class MascheraDialog(tk.Toplevel):
     """Maschera di inserimento/modifica costruita dai campi fissi + personalizzati."""
 
     def __init__(self, master, titolo, campi, iniziali=None, elenchi=None):
-        super().__init__(master)
+        super().__init__(master, background=SFONDO)
         self.title(titolo)
         self.transient(master)
         self.grab_set()
@@ -585,11 +740,13 @@ class MascheraDialog(tk.Toplevel):
                 w.current(0)
             return w
         elif tipo == "pratica":
-            w = ttk.Combobox(padre, values=self._elenchi.get("pratica", []),
-                             width=17, state="readonly")
-            if valore in w["values"]:
+            valori = list(self._elenchi.get("pratica", []))
+            w = ttk.Combobox(padre, values=valori, width=17, state="readonly")
+            if valore in valori:
                 w.set(valore)
-            elif w["values"]:
+            elif campo.get("obbligatorio"):
+                w.set(next((v for v in valori if v != "(nessuna)"), "(nessuna)"))
+            elif valori:
                 w.set("(nessuna)")
             return w
         elif tipo == "dipende":
@@ -706,8 +863,8 @@ class SchedaClienti(ttk.Frame):
         ttk.Button(barra, text="Elimina", command=self.elimina).pack(side="left", padx=2)
         ttk.Button(barra, text="Stampa scheda", command=self.stampa).pack(side="left", padx=2)
         self.cerca = tk.StringVar()
-        ttk.Entry(barra, textvariable=self.cerca, width=24).pack(side="left", padx=(20, 4))
-        ttk.Label(barra, text="cerca:").pack(side="left")
+        ttk.Label(barra, text="cerca:").pack(side="left", padx=(20, 4))
+        ttk.Entry(barra, textvariable=self.cerca, width=24).pack(side="left")
         self.cerca.trace_add("write", lambda *a: self.ricarica())
 
         self.albero = ttk.Treeview(self, show="headings")
@@ -723,7 +880,7 @@ class SchedaClienti(ttk.Frame):
         self.albero["columns"] = colonne
         for col, testo, larghezza in zip(colonne, testi, self.app.larghezze_sezione("clienti")):
             self.albero.heading(col, text=testo)
-            self.albero.column(col, width=larghezza, stretch=True)
+            self.albero.column(col, width=larghezza, minwidth=70, stretch=True)
         for i in self.albero.get_children():
             self.albero.delete(i)
         campi = campi_sezione(con, "clienti")
@@ -855,16 +1012,18 @@ class SchedaPratiche(ttk.Frame):
         ttk.Button(barra, text="Fattura pro forma",
                    command=self.fattura).pack(side="left", padx=2)
 
+        filtri = ttk.Frame(self, padding=(6, 0, 6, 6))
+        filtri.pack(fill="x")
         self.cerca = tk.StringVar()
-        ttk.Entry(barra, textvariable=self.cerca, width=18).pack(side="left", padx=(16, 4))
-        ttk.Label(barra, text="cerca:").pack(side="left")
+        ttk.Label(filtri, text="cerca:").pack(side="left")
+        ttk.Entry(filtri, textvariable=self.cerca, width=22).pack(side="left", padx=(4, 14))
         self.categoria_filtro = tk.StringVar(value="Tutte")
-        ttk.Label(barra, text="  Tipologia:").pack(side="left")
-        ttk.Combobox(barra, textvariable=self.categoria_filtro, width=16, state="readonly",
+        ttk.Label(filtri, text="Tipologia:").pack(side="left")
+        ttk.Combobox(filtri, textvariable=self.categoria_filtro, width=16, state="readonly",
                      values=["Tutte"] + CATEGORIE).pack(side="left", padx=4)
         self.stato_filtro = tk.StringVar(value="Tutti")
-        ttk.Label(barra, text="Stato:").pack(side="left")
-        ttk.Combobox(barra, textvariable=self.stato_filtro, width=12, state="readonly",
+        ttk.Label(filtri, text="Stato:").pack(side="left", padx=(12, 0))
+        ttk.Combobox(filtri, textvariable=self.stato_filtro, width=12, state="readonly",
                      values=["Tutti"] + STATI_PRATICA).pack(side="left", padx=4)
         for var in (self.cerca, self.categoria_filtro, self.stato_filtro):
             var.trace_add("write", lambda *a: self.ricarica())
@@ -882,7 +1041,7 @@ class SchedaPratiche(ttk.Frame):
         self.albero["columns"] = colonne
         for col, testo, larghezza in zip(colonne, testi, self.app.larghezze_sezione("pratiche")):
             self.albero.heading(col, text=testo)
-            self.albero.column(col, width=larghezza, stretch=True)
+            self.albero.column(col, width=larghezza, minwidth=70, stretch=True)
         for i in self.albero.get_children():
             self.albero.delete(i)
         campi = campi_sezione(con, "pratiche")
@@ -947,6 +1106,8 @@ class SchedaPratiche(ttk.Frame):
 
     def _scrivi(self, dati, custom, cliente_id, pratica_id):
         con = self.app.con
+        if not str(dati.get("stato") or "").strip():
+            dati["stato"] = "In attesa"
         colonne = TABELLE_DATI["pratiche"]
         valori = [dati.get(k, "") for k in colonne]
         stato = dati.get("stato") or "In attesa"
@@ -1071,24 +1232,27 @@ class SchedaPagamenti(ttk.Frame):
         ttk.Button(barra, text="Modifica", command=self.modifica).pack(side="left", padx=2)
         ttk.Button(barra, text="Elimina", command=self.elimina).pack(side="left", padx=2)
         self.cerca = tk.StringVar()
-        ttk.Entry(barra, textvariable=self.cerca, width=22).pack(side="left", padx=(20, 4))
-        ttk.Label(barra, text="cerca:").pack(side="left")
+        ttk.Label(barra, text="cerca:").pack(side="left", padx=(20, 4))
+        ttk.Entry(barra, textvariable=self.cerca, width=22).pack(side="left")
         self.cerca.trace_add("write", lambda *a: self.ricarica())
 
+        self.riepilogo = ttk.Label(self, padding=(10, 6), text="")
+        self.riepilogo.pack(side="bottom", fill="x")
+
+        corpo = ttk.Frame(self)
+        corpo.pack(fill="both", expand=True)
         colonne = ("pratica", "tipo", "importo", "data", "fattura", "fattura_data")
         testi = ("Pratica", "Tipo", "Importo", "Data", "Fattura n°", "Fattura del")
-        self.albero = ttk.Treeview(self, columns=colonne, show="headings")
-        for col, testo in zip(colonne, testi):
+        larghezze = (330, 140, 130, 130, 130, 130)
+        self.albero = ttk.Treeview(corpo, columns=colonne, show="headings")
+        for col, testo, larghezza in zip(colonne, testi, larghezze):
             self.albero.heading(col, text=testo)
-            self.albero.column(col, width=150, stretch=True)
-        barra_sc = ttk.Scrollbar(self, command=self.albero.yview)
+            self.albero.column(col, width=larghezza, minwidth=90, stretch=True)
+        barra_sc = ttk.Scrollbar(corpo, command=self.albero.yview)
         self.albero.configure(yscrollcommand=barra_sc.set)
         self.albero.pack(side="left", fill="both", expand=True)
         barra_sc.pack(side="left", fill="y")
         self.albero.bind("<Double-1>", lambda e: self.modifica())
-
-        self.riepilogo = ttk.Label(self, padding=8, text="")
-        self.riepilogo.pack(side="bottom", fill="x")
 
     def ricarica(self):
         con = self.app.con
@@ -1217,6 +1381,7 @@ class SchedaScadenze(ttk.Frame):
         ttk.Button(barra, text="Elimina", command=self.elimina).pack(side="left", padx=2)
         self.solo_aperte = tk.BooleanVar(value=True)
         ttk.Checkbutton(barra, text="solo aperte", variable=self.solo_aperte,
+                        style="Toolbutton",
                         command=self.ricarica).pack(side="left", padx=(20, 0))
 
         self.albero = ttk.Treeview(self, show="headings")
@@ -1224,7 +1389,8 @@ class SchedaScadenze(ttk.Frame):
         self.albero.configure(yscrollcommand=barra_sc.set)
         self.albero.pack(side="left", fill="both", expand=True)
         barra_sc.pack(side="left", fill="y")
-        self.albero.tag_configure("scaduta", background="#ffd6d6")
+        self.albero.tag_configure("scaduta", background=SCADUTA_BG,
+                                  foreground=SCADUTA_FG)
         self.albero.bind("<Double-1>", lambda e: self.modifica())
 
     def ricarica(self):
@@ -1233,7 +1399,7 @@ class SchedaScadenze(ttk.Frame):
         self.albero["columns"] = colonne
         for col, testo, larghezza in zip(colonne, testi, self.app.larghezze_sezione("scadenze")):
             self.albero.heading(col, text=testo)
-            self.albero.column(col, width=larghezza, stretch=True)
+            self.albero.column(col, width=larghezza, minwidth=70, stretch=True)
         for i in self.albero.get_children():
             self.albero.delete(i)
         campi = campi_sezione(con, "scadenze")
@@ -1727,6 +1893,7 @@ class App(tk.Tk):
         super().__init__()
         self.title("Gestione Studio Geometra")
         self.geometry("1180x660")
+        applica_tema(self)
         inizializza_db()
         self.con = connetti()
 
@@ -1775,7 +1942,7 @@ class App(tk.Tk):
         for campo in CAMPI_FISSI[sezione]:
             if campo.get("tabella"):
                 colonne.append("fisso_" + campo["chiave"])
-                testi.append(campo["etichetta"].rstrip(" *"))
+                testi.append(campo.get("colonna") or campo["etichetta"].rstrip(" *"))
         for k in campi_sezione(self.con, sezione):
             colonne.append(f"campo{k['id']}")
             testi.append(k["nome"])
@@ -1785,9 +1952,17 @@ class App(tk.Tk):
         larghezze = []
         for campo in CAMPI_FISSI[sezione]:
             if campo.get("tabella"):
-                larghezze.append(campo.get("larghezza_tabella", 140))
-        larghezze += [140] * len(campi_sezione(self.con, sezione))
+                testo = campo.get("colonna") or campo["etichetta"].rstrip(" *")
+                larghezze.append(campo.get("larghezza_tabella")
+                                 or self.larghezza_colonna(testo))
+        for k in campi_sezione(self.con, sezione):
+            larghezze.append(self.larghezza_colonna(k["nome"]))
         return larghezze
+
+    @staticmethod
+    def larghezza_colonna(testo):
+        """Larghezza che contiene l'intestazione senza tagliarla."""
+        return max(100, min(230, 8 * len(str(testo)) + 24))
 
     # -- elenchi per le maschere -------------------------------------------
 
